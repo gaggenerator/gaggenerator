@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grow a Garden - Pet Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #E6F3FF 50%, #FFFFFF 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Floating decorative elements */
+        .decoration {
+            position: absolute;
+            opacity: 0.7;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .decoration.cactus1 { top: 10%; left: 5%; font-size: 2em; animation-delay: 0s; }
+        .decoration.cactus2 { top: 20%; right: 8%; font-size: 1.5em; animation-delay: 2s; }
+        .decoration.flower1 { top: 60%; left: 10%; font-size: 2.5em; animation-delay: 1s; }
+        .decoration.flower2 { top: 70%; right: 15%; font-size: 1.8em; animation-delay: 3s; }
+        .decoration.tree { top: 40%; right: 5%; font-size: 2em; animation-delay: 4s; }
+        .decoration.grape { top: 30%; right: 20%; font-size: 2.2em; animation-delay: 5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Online Status */
+        .online-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 200, 0, 0.9);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 200, 0, 0.3);
+            animation: pulse 2s infinite;
+            font-size: 1em;
+        }
+
+        .online-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #00FF00;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #32CD32;
+            border-radius: 15px;
+            padding: 15px;
+            max-width: 300px;
+            z-index: 200;
+            transform: translateX(400px);
+            transition: transform 0.5s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-header {
+            color: #FF6347;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+
+        .notification-content {
+            color: #2E8B57;
+            font-size: 0.9em;
+        }
+
+        /* Notification Queue Container */
+        .notification-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        .notification-item {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #32CD32;
+            border-radius: 15px;
+            padding: 15px;
+            max-width: 300px;
+            margin-bottom: 10px;
+            transform: translateX(400px);
+            transition: all 0.5s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .notification-item.show {
+            transform: translateX(0);
+        }
+
+        .notification-item.removing {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .logo-text {
+            font-size: 4em;
+            font-weight: 900;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 0.8;
+        }
+
+        .logo-line-1 {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logo-text .gr { 
+            color: #fff; 
+            text-shadow: 3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+            letter-spacing: -5px;
+        }
+        .logo-text .strawberry { 
+            font-size: 0.7em; 
+            filter: drop-shadow(2px 2px 0px #000);
+            margin: 0 -10px;
+        }
+        .logo-text .w { 
+            color: #fff; 
+            text-shadow: 3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+            margin-left: -15px;
+        }
+        .logo-text .a { 
+            color: #fff; 
+            text-shadow: 3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+        }
+        .logo-text .garden { 
+            color: #4CAF50; 
+            text-shadow: 3px 3px 0px #2E7D32, -1px -1px 0px #2E7D32, 1px -1px 0px #2E7D32, -1px 1px 0px #2E7D32;
+            letter-spacing: -3px;
+            margin-top: -10px;
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            color: #2E8B57;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .generator-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 3px solid #32CD32;
+            text-align: center;
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .username-input {
+            padding: 15px 20px;
+            font-size: 1.2em;
+            border: 3px solid #32CD32;
+            border-radius: 25px;
+            outline: none;
+            min-width: 300px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .username-input:focus {
+            border-color: #FF6347;
+            box-shadow: 0 0 10px rgba(255, 99, 71, 0.3);
+        }
+
+        .generate-btn {
+            padding: 15px 30px;
+            font-size: 1.3em;
+            background: linear-gradient(45deg, #32CD32, #7CFC00);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(50, 205, 50, 0.3);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(50, 205, 50, 0.4);
+        }
+
+        .generate-btn:disabled {
+            background: linear-gradient(45deg, #ccc, #999);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .selection-info {
+            color: #2E8B57;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+
+        .selection-warning {
+            color: #FF6347;
+            font-size: 1.1em;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .pets-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 3px solid #FF6347;
+        }
+
+        .pets-title {
+            text-align: center;
+            font-size: 2.5em;
+            color: #2E8B57;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .browse-text {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .pets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pet-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 3px solid #32CD32;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .pet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .pet-card.selected {
+            border-color: #FF6347;
+            background: rgba(255, 99, 71, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .pet-card.selected::after {
+            content: "●";
+            position: absolute;
+            top: -5px;
+            right: 10px;
+            background: #00FF00;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1em;
+            border: 2px solid white;
+        }
+
+        .pet-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 2px solid #32CD32;
+        }
+
+        .pet-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .pet-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #2E8B57;
+        }
+
+        .mutated-pets-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .mutated-pets-title {
+            font-size: 2.5em;
+            color: #2E8B57;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Loading Popup */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            border: 4px solid #32CD32;
+            min-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .popup-logo {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .popup-logo .gr { color: #333; }
+        .popup-logo .garden { color: #32CD32; }
+
+        .popup-status {
+            font-size: 1.3em;
+            color: #2E8B57;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(45deg, #32CD32, #7CFC00);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .loading-dots {
+            display: inline-block;
+            font-size: 2em;
+            color: #32CD32;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '●○○○○'; }
+            20%, 40% { content: '○●○○○'; }
+            40%, 60% { content: '○○●○○'; }
+            60%, 80% { content: '○○○●○'; }
+            80%, 100% { content: '○○○○●'; }
+        }
+
+        /* Success Option Buttons */
+        .success-option-btn {
+            padding: 15px 25px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            min-width: 160px;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .add-friend-btn {
+            background: linear-gradient(45deg, #FF6347, #FF4500);
+            box-shadow: 0 4px 15px rgba(255, 99, 71, 0.3);
+        }
+
+        .add-friend-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 99, 71, 0.4);
+        }
+
+        .join-server-btn {
+            background: linear-gradient(45deg, #32CD32, #7CFC00);
+            box-shadow: 0 4px 15px rgba(50, 205, 50, 0.3);
+        }
+
+        .join-server-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(50, 205, 50, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .logo-text { 
+                font-size: 2.2em; 
+            }
+            .subtitle {
+                font-size: 1.2em;
+            }
+            .input-group { 
+                flex-direction: column; 
+                align-items: center; 
+            }
+            .username-input { 
+                min-width: 250px; 
+                font-size: 1em;
+                padding: 12px 16px;
+            }
+            .generate-btn {
+                font-size: 1.1em;
+                padding: 12px 25px;
+            }
+            .pets-grid { 
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+                gap: 15px;
+            }
+            .pet-card {
+                padding: 15px;
+            }
+            .pet-image {
+                width: 60px;
+                height: 60px;
+            }
+            .pet-name {
+                font-size: 0.9em;
+            }
+            .pets-title {
+                font-size: 2em;
+            }
+            .mutated-pets-title {
+                font-size: 2em;
+            }
+            .popup-content { 
+                min-width: 280px; 
+                padding: 25px; 
+                margin: 10px;
+            }
+            .popup-logo {
+                font-size: 2em;
+            }
+            .popup-status {
+                font-size: 1.1em;
+            }
+            .online-status { 
+                top: 10px; 
+                right: 10px; 
+                font-size: 0.8em;
+                padding: 8px 14px;
+            }
+            .notification-container {
+                top: 60px; 
+                right: 10px; 
+            }
+            .notification-item { 
+                max-width: 280px; 
+                padding: 12px;
+                font-size: 0.85em;
+            }
+            .success-option-btn {
+                font-size: 1em;
+                padding: 12px 20px;
+                min-width: 140px;
+                margin: 5px;
+            }
+            .selection-info, .selection-warning {
+                font-size: 1em;
+            }
+            .generator-section {
+                padding: 20px;
+            }
+            .pets-section {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text { 
+                font-size: 1.8em; 
+            }
+            .subtitle {
+                font-size: 1em;
+            }
+            .username-input { 
+                min-width: 220px; 
+                font-size: 0.9em;
+            }
+            .generate-btn {
+                font-size: 1em;
+            }
+            .pets-grid { 
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+                gap: 12px;
+            }
+            .pet-card {
+                padding: 12px;
+            }
+            .pet-image {
+                width: 50px;
+                height: 50px;
+            }
+            .pet-name {
+                font-size: 0.8em;
+            }
+            .pets-title {
+                font-size: 1.6em;
+            }
+            .mutated-pets-title {
+                font-size: 1.6em;
+            }
+            .popup-content { 
+                min-width: 250px; 
+                padding: 20px; 
+                margin: 15px;
+            }
+            .popup-logo {
+                font-size: 1.6em;
+            }
+            .popup-status {
+                font-size: 1em;
+            }
+            .success-option-btn {
+                font-size: 0.9em;
+                padding: 10px 18px;
+                min-width: 120px;
+            }
+            .notification-item { 
+                max-width: 250px; 
+                padding: 10px;
+                font-size: 0.8em;
+            }
+            .online-status {
+                font-size: 0.7em;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Decorations -->
+    <div class="decoration cactus1">🌵</div>
+    <div class="decoration cactus2">🌵</div>
+    <div class="decoration flower1">🌺</div>
+    <div class="decoration flower2">🌸</div>
+    <div class="decoration tree">🌳</div>
+    <div class="decoration grape">🍇</div>
+
+    <!-- Online Status -->
+    <div class="online-status">
+        <span class="online-dot"></span><span id="onlineCount">847</span> ONLINE
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container">
+        <!-- Notifications will be added here dynamically -->
+    </div>
+
+    <!-- Loading Popup -->
+    <div id="loadingPopup" class="popup-overlay">
+        <div class="popup-content">
+            <div class="popup-logo">
+                <span class="gr">GR</span><span>🍓</span><span>W A</span><br>
+                <span class="garden">GARDEN</span>
+            </div>
+            <div id="popupStatus" class="popup-status">Initializing...</div>
+            <div class="loading-bar">
+                <div id="loadingProgress" class="loading-progress"></div>
+            </div>
+            <div class="loading-dots"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-text">
+                    <div class="logo-line-1">
+                        <span class="gr">GR</span><span class="strawberry">🍓</span><span class="w">W</span> <span class="a">A</span>
+                    </div>
+                    <span class="garden">GARDEN</span>
+                </div>
+            </div>
+            <p class="subtitle">Mutated Pets Generator</p>
+        </div>
+
+        <div class="generator-section">
+            <div class="input-group">
+                <input type="text" class="username-input" placeholder="Enter Username" id="usernameInput">
+                <button class="generate-btn" onclick="startGeneration()" id="generateBtn" disabled>Generate!</button>
+            </div>
+            <div id="selectionInfo" class="selection-info">
+                Select up to 3 pets to continue (0/3 selected)
+            </div>
+            <div id="selectionWarning" class="selection-warning">
+                ⚠️ Please select at least one pet before generating! ⚠️
+            </div>
+        </div>
+
+        <div class="pets-section">
+            <h2 class="pets-title">Pets:</h2>
+            <div class="browse-text">Browse through the available pets:</div>
+            <div class="pets-grid" id="petsGrid">
+                <!-- Pets will be loaded automatically -->
+            </div>
+            
+            <div class="mutated-pets-section">
+                <h2 class="mutated-pets-title">Mutated Pets:</h2>
+                <div class="pets-grid" id="mutatedPetsGrid">
+                    <!-- Mutated Pets will be loaded automatically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedPets = new Set();
+        let selectedMutatedPets = new Set();
+        let allPets = [];
+        let allMutatedPets = [];
+        let notificationQueue = [];
+        const MAX_SELECTION = 3;
+        const MAX_NOTIFICATIONS = 5;
+
+        // Simulate automatic folder scanning for pets and mutated pets
+        function scanPetsFolder() {
+            // 🔥 EASY PET MANAGEMENT 🔥
+            // Just add your image filename here and it automatically loads!
+            // Put your images in a "pets" folder next to this HTML file
+            
+            const petFiles = [
+                // Just add your pet image names here - that's it!
+                'Disco Bee.png',
+                'Raccoon Pet.jpg', 
+                'Mimic Octopus.png',
+                'Butterfly Pet.jpg',
+                'Scarlet Macaw.png',
+                'Dragonfly Pet.jpg',
+                'Queen Bee.png',
+                'Red Fox.jpg',
+                'T-Rex.png',
+                'Raiju.png',
+                'Kitsune Pet.png',
+                'Corrupted Kitsune.png',
+                
+                // 👆 ADD YOUR NEW PETS ABOVE THIS LINE 👆
+                // Example: 'Fire Dragon.png',
+                // Example: 'Ice Phoenix.jpg',
+                // The filename becomes the pet name automatically!
+            ];
+
+            // Convert filenames to pet objects with real images
+            allPets = petFiles.map(filename => {
+                const name = filename.replace(/\.(png|jpg|jpeg|gif)$/i, '');
+                const imagePath = `./pets/${filename}`;
+                
+                return {
+                    name: name,
+                    filename: filename,
+                    imagePath: imagePath,
+                    hasImage: true,
+                    type: 'pet'
+                };
+            });
+
+            console.log(`🐾 Loaded ${allPets.length} pets from folder`);
+            renderPets();
+        }
+
+        function scanMutatedPetsFolder() {
+            // 🧬 EASY MUTATED PET MANAGEMENT 🧬
+            // Just add your mutated pet image filename here and it automatically loads!
+            // Put your images in a "mutated_pets" folder next to this HTML file
+            
+            const mutatedPetFiles = [
+                // Just add your mutated pet image names here - that's it!
+                'Tranquil Raccoon.jpg',
+                'GiantBean Raccoon.jpg',
+                'Ascended Raccoon.jpg',
+                'Shocked Raccoon.jpg',
+                'Rainbow Raccoon.jpg',
+                'Radiant Raccoon.jpg',
+                'IronSkin Raccoon.jpg',
+                'Tiny Raccoon.jpg',
+                'Mega Raccoon.jpg'
+                
+                // 👆 ADD YOUR NEW MUTATED PETS ABOVE THIS LINE 👆
+                // Example: 'Radioactive Frog.png',
+                // Example: 'Hybrid Phoenix.jpg',
+                // The filename becomes the mutated pet name automatically!
+            ];
+
+            // Convert filenames to mutated pet objects with real images
+            allMutatedPets = mutatedPetFiles.map(filename => {
+                const name = filename.replace(/\.(png|jpg|jpeg|gif)$/i, '');
+                const imagePath = `./mutated_pets/${filename}`;
+                
+                return {
+                    name: name,
+                    filename: filename,
+                    imagePath: imagePath,
+                    hasImage: true,
+                    type: 'mutated_pet'
+                };
+            });
+
+            console.log(`🧬 Loaded ${allMutatedPets.length} mutated pets from folder`);
+            renderMutatedPets();
+        }
+
+        function renderPets() {
+            const petsGrid = document.getElementById('petsGrid');
+            petsGrid.innerHTML = '';
+
+            allPets.forEach((pet, index) => {
+                const petCard = document.createElement('div');
+                petCard.className = 'pet-card';
+                petCard.onclick = () => togglePetSelection(index);
+                
+                // Use real images instead of emojis
+                petCard.innerHTML = `
+                    <img src="${pet.imagePath}" alt="${pet.name}" class="pet-image" 
+                         onerror="this.src='data:image/svg+xml;base64,${btoa('<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"80\\" height=\\"80\\" viewBox=\\"0 0 80 80\\"><rect width=\\"80\\" height=\\"80\\" fill=\\"#f0f0f0\\"/><text x=\\"40\\" y=\\"45\\" text-anchor=\\"middle\\" font-family=\\"Arial\\" font-size=\\"12\\" fill=\\"#666\\">No Image</text></svg>')}';">
+                    <div class="pet-name">${pet.name}</div>
+                `;
+                
+                petsGrid.appendChild(petCard);
+            });
+        }
+
+        function renderMutatedPets() {
+            const mutatedPetsGrid = document.getElementById('mutatedPetsGrid');
+            mutatedPetsGrid.innerHTML = '';
+
+            allMutatedPets.forEach((mutatedPet, index) => {
+                const mutatedPetCard = document.createElement('div');
+                mutatedPetCard.className = 'pet-card'; // Reuse pet-card styling
+                mutatedPetCard.onclick = () => toggleMutatedPetSelection(index);
+                
+                // Use real images for mutated pets
+                mutatedPetCard.innerHTML = `
+                    <img src="${mutatedPet.imagePath}" alt="${mutatedPet.name}" class="pet-image" 
+                         onerror="this.src='data:image/svg+xml;base64,${btoa('<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"80\\" height=\\"80\\" viewBox=\\"0 0 80 80\\"><rect width=\\"80\\" height=\\"80\\" fill=\\"#f0f0f0\\"/><text x=\\"40\\" y=\\"45\\" text-anchor=\\"middle\\" font-family=\\"Arial\\" font-size=\\"12\\" fill=\\"#666\\">No Image</text></svg>')}';">
+                    <div class="pet-name">${mutatedPet.name}</div>
+                `;
+                
+                mutatedPetsGrid.appendChild(mutatedPetCard);
+            });
+        }
+
+        function toggleMutatedPetSelection(index) {
+            const mutatedPetCards = document.querySelectorAll('#mutatedPetsGrid .pet-card');
+            const mutatedPetCard = mutatedPetCards[index];
+            
+            if (selectedMutatedPets.has(index)) {
+                selectedMutatedPets.delete(index);
+                mutatedPetCard.classList.remove('selected');
+            } else {
+                if (selectedMutatedPets.size >= MAX_SELECTION) {
+                    showNotification('🧬 Selection Limit', `You can only select up to ${MAX_SELECTION} mutated pets!`);
+                    return;
+                }
+                selectedMutatedPets.add(index);
+                mutatedPetCard.classList.add('selected');
+            }
+            
+            updateSelectionStatus();
+        }
+
+        function togglePetSelection(index) {
+            const petCard = document.querySelectorAll('#petsGrid .pet-card')[index];
+            
+            if (selectedPets.has(index)) {
+                selectedPets.delete(index);
+                petCard.classList.remove('selected');
+            } else {
+                if (selectedPets.size >= MAX_SELECTION) {
+                    showNotification('🐾 Selection Limit', `You can only select up to ${MAX_SELECTION} pets!`);
+                    return;
+                }
+                selectedPets.add(index);
+                petCard.classList.add('selected');
+            }
+            
+            updateSelectionStatus();
+        }
+
+        function updateSelectionStatus() {
+            const generateBtn = document.getElementById('generateBtn');
+            const warning = document.getElementById('selectionWarning');
+            const info = document.getElementById('selectionInfo');
+            
+            const selectedCount = selectedPets.size + selectedMutatedPets.size;
+            info.textContent = `Select up to ${MAX_SELECTION} pets/mutated pets to continue (${selectedCount}/${MAX_SELECTION} selected)`;
+            
+            if (selectedCount > 0) {
+                generateBtn.disabled = false;
+                warning.style.display = 'none';
+                info.style.color = '#2E8B57';
+            } else {
+                generateBtn.disabled = true;
+                warning.style.display = 'block';
+                info.style.color = '#FF6347';
+            }
+        }
+
+        async function startGeneration() {
+            const username = document.getElementById('usernameInput').value.trim();
+            
+            if (!username) {
+                alert('Please enter a username!');
+                return;
+            }
+
+            if (selectedPets.size === 0 && selectedMutatedPets.size === 0) {
+                document.getElementById('selectionWarning').style.display = 'block';
+                return;
+            }
+
+            showLoadingPopup();
+        }
+
+        async function showLoadingPopup() {
+            const popup = document.getElementById('loadingPopup');
+            const status = document.getElementById('popupStatus');
+            const progress = document.getElementById('loadingProgress');
+            
+            popup.style.display = 'flex';
+            
+            const steps = [
+                { text: 'Connecting to Servers...', progress: 20, delay: 1000 },
+                { text: 'Successfully Connected.', progress: 40, delay: 800 },
+                { text: 'Finding Username...', progress: 60, delay: 1200 },
+                { text: 'Username Found.', progress: 80, delay: 900 },
+                { text: 'Whitelisting Username...', progress: 95, delay: 1000 },
+                { text: 'Username Whitelisted!', progress: 100, delay: 800 }
+            ];
+
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                status.textContent = step.text;
+                progress.style.width = step.progress + '%';
+                await new Promise(resolve => setTimeout(resolve, step.delay));
+            }
+
+            setTimeout(() => {
+                popup.style.display = 'none';
+                showSuccessMessage();
+            }, 1000);
+        }
+
+        function showSuccessMessage() {
+            const username = document.getElementById('usernameInput').value;
+            
+            // Show success options instead of alert
+            showSuccessOptions(username);
+        }
+
+        function showSuccessOptions(username) {
+            const popup = document.getElementById('loadingPopup');
+            const popupContent = popup.querySelector('.popup-content');
+            
+            const selectedPetNames = Array.from(selectedPets).map(index => allPets[index].name);
+            const selectedMutatedPetNames = Array.from(selectedMutatedPets).map(index => allMutatedPets[index].name);
+            const allSelected = [...selectedPetNames, ...selectedMutatedPetNames];
+            
+            popupContent.innerHTML = `
+                <div class="popup-logo">
+                    <span class="gr">GR</span><span>🍓</span><span>W A</span><br>
+                    <span class="garden">GARDEN</span>
+                </div>
+                <div style="font-size: 1.8em; color: #32CD32; margin-bottom: 15px; font-weight: bold;">
+                    ✅ Success!
+                </div>
+                <div style="font-size: 1.2em; color: #2E8B57; margin-bottom: 10px;">
+                    <strong>Username:</strong> ${username}
+                </div>
+                <div style="font-size: 1.1em; color: #666; margin-bottom: 25px;">
+                    <strong>Selected Items:</strong> ${allSelected.join(', ')}
+                </div>
+                <div style="font-size: 1.3em; color: #2E8B57; margin-bottom: 25px; font-weight: bold;">
+                    Choose your next action:
+                </div>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="addFriend()" class="success-option-btn add-friend-btn">
+                        👤 Add Friend
+                    </button>
+                    <button onclick="joinPrivateServer()" class="success-option-btn join-server-btn">
+                        🌐 Join Private Server
+                    </button>
+                </div>
+                <div style="margin-top: 20px; font-size: 0.9em; color: #999;">
+                    Click on your preferred option above
+                </div>
+            `;
+            
+            popup.style.display = 'flex';
+        }
+
+        function addFriend() {
+            // Show loading for add friend
+            showActionLoading('Adding Friend...', () => {
+                // Redirect to add friend page (replace with your actual URL)
+                window.location.href = 'https://www.robiox.com.ua/users/3596348848/profile';
+            });
+        }
+
+        function joinPrivateServer() {
+            // Show loading for join private server
+            showActionLoading('Joining Private Server...', () => {
+                // Redirect to private server page (replace with your actual URL)  
+                window.location.href = 'https://www.robiox.com.ua/games/126884695634066/Grow-a-Garden?privateServerLinkCode=88942133510596065932726062475403';
+            });
+        }
+
+        function showActionLoading(message, callback) {
+            const popup = document.getElementById('loadingPopup');
+            const popupContent = popup.querySelector('.popup-content');
+            
+            popupContent.innerHTML = `
+                <div class="popup-logo">
+                    <span class="gr">GR</span><span>🍓</span><span>W A</span><br>
+                    <span class="garden">GARDEN</span>
+                </div>
+                <div id="actionStatus" class="popup-status">${message}</div>
+                <div class="loading-bar">
+                    <div id="actionProgress" class="loading-progress"></div>
+                </div>
+                <div class="loading-dots"></div>
+            `;
+            
+            // Animate progress bar
+            const progress = document.getElementById('actionProgress');
+            let currentProgress = 0;
+            
+            const progressInterval = setInterval(() => {
+                currentProgress += Math.random() * 15 + 5;
+                if (currentProgress >= 100) {
+                    currentProgress = 100;
+                    progress.style.width = '100%';
+                    clearInterval(progressInterval);
+                    
+                    setTimeout(() => {
+                        callback();
+                    }, 500);
+                } else {
+                    progress.style.width = currentProgress + '%';
+                }
+            }, 200);
+        }
+
+        function showNotification(title, message) {
+            // Remove oldest notification if we're at the limit
+            if (notificationQueue.length >= MAX_NOTIFICATIONS) {
+                removeOldestNotification();
+            }
+            
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = 'notification-item';
+            notification.innerHTML = `
+                <div class="notification-header">${title}</div>
+                <div class="notification-content">${message}</div>
+            `;
+            
+            // Add click to dismiss
+            notification.addEventListener('click', () => {
+                removeNotification(notification);
+            });
+            
+            container.appendChild(notification);
+            notificationQueue.push(notification);
+            
+            // Show notification with animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    removeNotification(notification);
+                }
+            }, 4000);
+        }
+
+        function removeNotification(notification) {
+            notification.classList.add('removing');
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.parentElement.removeChild(notification);
+                    notificationQueue = notificationQueue.filter(n => n !== notification);
+                }
+            }, 500);
+        }
+
+        function removeOldestNotification() {
+            if (notificationQueue.length > 0) {
+                const oldest = notificationQueue[0];
+                removeNotification(oldest);
+            }
+        }
+
+        // More realistic username generation
+        function generateRealisticUsername() {
+            const firstNames = ['Alex', 'Sam', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Jamie', 'Riley', 'Blake', 'Drew', 'Avery', 'Quinn', 'Sage', 'Robin', 'Kai', 'River', 'Skyler', 'Cameron', 'Logan', 'Phoenix', 'Mason', 'Liam', 'Noah', 'Ethan', 'Lucas', 'Oliver', 'Caleb', 'Emma', 'Olivia', 'Sophia', 'Isabella', 'Ava', 'Mia', 'Emily', 'Abigail', 'Madison', 'Charlotte', 'Harper', 'Sofia'];
+            
+            const adjectives = ['Cool', 'Pro', 'Epic', 'Smart', 'Fast', 'Quick', 'Sharp', 'Bright', 'Swift', 'Bold', 'Wild', 'Fierce'];
+            
+            const endings = ['_xd', '_pro', '_yt', '_ttv', '_123', '_456', '_789', '2023', '2024', '13', '21', '99', 'xo', 'lol'];
+            
+            const patterns = [
+                () => `${firstNames[Math.floor(Math.random() * firstNames.length)]}${Math.floor(Math.random() * 9999)}`,
+                () => `${adjectives[Math.floor(Math.random() * adjectives.length)]}${firstNames[Math.floor(Math.random() * firstNames.length)]}`,
+                () => `${firstNames[Math.floor(Math.random() * firstNames.length)]}${endings[Math.floor(Math.random() * endings.length)]}`,
+                () => `${firstNames[Math.floor(Math.random() * firstNames.length)]}_${firstNames[Math.floor(Math.random() * firstNames.length)]}`,
+                () => `${adjectives[Math.floor(Math.random() * adjectives.length)]}${Math.floor(Math.random() * 99)}`
+            ];
+            
+            const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
+            return selectedPattern();
+        }
+
+        function updateOnlineCount() {
+            const onlineElement = document.getElementById('onlineCount');
+            const currentCount = parseInt(onlineElement.textContent);
+            
+            // Random change between -10 to +15
+            const change = Math.floor(Math.random() * 26) - 10;
+            let newCount = currentCount + change;
+            
+            // Keep between 400-1500
+            if (newCount < 400) newCount = 400 + Math.floor(Math.random() * 50);
+            if (newCount > 1500) newCount = 1450 + Math.floor(Math.random() * 50);
+            
+            onlineElement.textContent = newCount;
+        }
+
+        function showRandomNotification() {
+            const username = generateRealisticUsername();
+            const allItems = [...allPets, ...allMutatedPets];
+            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
+            
+            // 60% chance for item claim, 40% chance for join notification
+            const notificationType = Math.random() < 0.6 ? 'item' : 'join';
+            
+            if (notificationType === 'item') {
+                const itemType = randomItem.type === 'pet' ? '🐾' : '🧬';
+                showNotification(`${itemType} ${randomItem.type === 'pet' ? 'Pet' : 'Mutated Pet'} Received`, `${username} received ${randomItem.name}`);
+            } else {
+                showNotification('👤 Player Joined', `${username} just joined private server`);
+            }
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌱 Initializing Grow A Garden...');
+            scanPetsFolder();
+            scanMutatedPetsFolder();
+            updateSelectionStatus();
+            
+            // Show welcome notification
+            setTimeout(() => {
+                showNotification('🌟 Welcome!', 'Select your favorite pets and mutated pets to start growing your garden!');
+            }, 2000);
+            
+            // Update online count every 5-15 seconds
+            setInterval(updateOnlineCount, Math.floor(Math.random() * 10000) + 5000);
+            
+            // Show random notifications every 6-12 seconds
+            setInterval(showRandomNotification, Math.floor(Math.random() * 6000) + 6000);
+        });
+
+        // Enter key support
+        document.getElementById('usernameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !document.getElementById('generateBtn').disabled) {
+                startGeneration();
+            }
+        });
+    </script>
+</body>
+</html>
+
